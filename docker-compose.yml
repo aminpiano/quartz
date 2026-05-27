@@ -1,0 +1,19 @@
+networks:
+  infra_web:
+    external: true
+
+services:
+  notes:
+    image: ghcr.io/aminpiano/quartz:latest
+    container_name: notes-web
+    restart: unless-stopped
+    networks:
+      - infra_web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=infra_web"
+      - "traefik.http.routers.notes.rule=Host(`notes.ja-dan.com`)"
+      - "traefik.http.routers.notes.entrypoints=websecure"
+      - "traefik.http.routers.notes.tls=true"
+      - "traefik.http.routers.notes.tls.certresolver=letsencrypt"
+      - "traefik.http.services.notes.loadbalancer.server.port=80"

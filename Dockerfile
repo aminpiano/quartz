@@ -1,13 +1,26 @@
-FROM node:22-slim AS builder
-WORKDIR /usr/src/app
-COPY package.json .
-COPY package-lock.json* .
-COPY quartz/ ./quartz/
-COPY quartz.lock.json .
-RUN npm ci; npx quartz plugin install
+# Stage 1 — build static site
+FROM node:24-alpine AS builder
+WORKDIR /app
 
-FROM node:22-slim
-WORKDIR /usr/src/app
-COPY --from=builder /usr/src/app/ /usr/src/app/
+# git: created-modified-date plugin reads git timestamps when frontmatter is missing
+RUN apk add --no-cache git
+
+# Cache-friendly: lockfile first, then full source
+COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
-CMD ["npx", "quartz", "build", "--serve"]
+
+# Install community plugins from lockfile, then build → public/
+RUN npx quartz plugin install && npx quartz build
+
+# Stage 2 — serve static
+FROM nginx:alpine
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/public /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -q -O /dev/null http://localhost/ || exit 1
