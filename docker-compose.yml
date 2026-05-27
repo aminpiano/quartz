@@ -4,7 +4,9 @@ networks:
 
 services:
   notes:
-    image: ghcr.io/aminpiano/quartz:latest
+    build:
+      context: .
+    image: notes-web:latest
     container_name: notes-web
     restart: unless-stopped
     networks:
