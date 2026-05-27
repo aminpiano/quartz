@@ -1,9 +1,10 @@
 # Stage 1 — build static site
-FROM node:24-alpine AS builder
+# slim (Debian) over alpine: Quartz CLI uses `#!/usr/bin/env -S node` shebang which BusyBox env doesn't support
+FROM node:24-slim AS builder
 WORKDIR /app
 
 # git: created-modified-date plugin reads git timestamps when frontmatter is missing
-RUN apk add --no-cache git
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Cache-friendly: lockfile first, then full source
 COPY package.json package-lock.json ./
